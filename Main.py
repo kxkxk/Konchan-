@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 import re
 import requests
 import threading
+import opFile
 #请求头
 Headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3493.3 Safari/537.36',
@@ -25,6 +26,7 @@ class ThreadDL(threading.Thread):
         self.t = t
         self.Durl = Durl
     def run(self) :
+        print("准备下载第%d张图片"%t)
         Download_pic(Durl,title,t)
 """
 函数说明：
@@ -32,11 +34,14 @@ class ThreadDL(threading.Thread):
 """
 def get_url(Surl):
     DurlList = []
-    url_req = requests.get(Surl,Headers)
+    try:
+       url_req = requests.get(Surl,Headers)
+    except requests.exceptions.ConnectionError as e:
+        print("链接失败")
     bf = BeautifulSoup(url_req.text)
+    print("success")
     button = bf.find_all('button', class_='am-btn am-btn-secondary am-btn-xs')
     for it in button:
-        print(it)
         res = it["onclick"]
         Durl = re.findall('\(\'(.*)\',', res)
         DurlList.append(Durl[0])
@@ -47,12 +52,13 @@ def get_url(Surl):
 """
 def Download_pic(Durl,title,t):
     title = title+'.jpg'
+    print("正在下载第%d张图片"%t)
     try:
         pic_req = requests.get(Durl,Headers).content
     except requests.exceptions.ConnectionError as e:
         print("连接超时")
         return
-    print("正在下载第%d张图片"%t)
+
     with open(title,'wb') as f:
         f.write(pic_req)
         f.close()
@@ -66,14 +72,18 @@ def get_Surl(Furl,index):
     Surl = Furl+'&p='+str(index)
     return Surl
 if __name__ == '__main__':
+    frontPath = opFile.mkPath()
+    newFordName = opFile.strTime()
+    path = opFile.mkNewFord(newFordName)
+    print(path)
     t = 0
-    for i in range(2,3):
+    for i in range(1,2):
         Surl = get_Surl(Furl,i)
         DurlList = get_url(Surl)
         print('连接成功')
         for Durl in DurlList:
             threadMax.acquire()
-            title = str(t)+'__'+'pic'
+            title = path+str(t)+'_'+'pic'
             print("创建新线程：%d"%t)
             sta = ThreadDL(Durl,title,t)
             sta.start()
